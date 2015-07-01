@@ -50,13 +50,10 @@ class RouterDebugCommand extends ContainerAwareCommand
     {
         $this
             ->setName('debug:router')
-            ->setAliases(array(
-                'router:debug',
-            ))
             ->setDefinition(array(
                 new InputArgument('name', InputArgument::OPTIONAL, 'A route name'),
-                new InputOption('show-controllers', null,  InputOption::VALUE_NONE, 'Show assigned controllers in overview'),
-                new InputOption('format', null, InputOption::VALUE_REQUIRED, 'To output route(s) in other formats', 'txt'),
+                new InputOption('show-controllers', null, InputOption::VALUE_NONE, 'Show assigned controllers in overview'),
+                new InputOption('format', null, InputOption::VALUE_REQUIRED, 'The output format (txt, xml, json, or md)', 'txt'),
                 new InputOption('raw', null, InputOption::VALUE_NONE, 'To output raw route(s)'),
             ))
             ->setDescription('Displays current routes for an application')
@@ -87,9 +84,9 @@ EOF
             }
             $this->convertController($route);
             $helper->describe($output, $route, array(
-                'format'   => $input->getOption('format'),
+                'format' => $input->getOption('format'),
                 'raw_text' => $input->getOption('raw'),
-                'name'     => $name,
+                'name' => $name,
             ));
         } else {
             $routes = $this->getContainer()->get('router')->getRouteCollection();
@@ -99,8 +96,8 @@ EOF
             }
 
             $helper->describe($output, $routes, array(
-                'format'           => $input->getOption('format'),
-                'raw_text'         => $input->getOption('raw'),
+                'format' => $input->getOption('format'),
+                'raw_text' => $input->getOption('raw'),
                 'show_controllers' => $input->getOption('show-controllers'),
             ));
         }

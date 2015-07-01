@@ -15,8 +15,9 @@ use Symfony\Component\Form\FormTypeGuesserInterface;
 use Symfony\Component\Form\Guess\Guess;
 use Symfony\Component\Form\Guess\TypeGuess;
 use Symfony\Component\Form\Guess\ValueGuess;
-use Symfony\Component\Validator\MetadataFactoryInterface;
 use Symfony\Component\Validator\Constraint;
+use Symfony\Component\Validator\Mapping\ClassMetadataInterface;
+use Symfony\Component\Validator\MetadataFactoryInterface;
 
 class ValidatorTypeGuesser implements FormTypeGuesserInterface
 {
@@ -32,10 +33,8 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
      */
     public function guessType($class, $property)
     {
-        $guesser = $this;
-
-        return $this->guess($class, $property, function (Constraint $constraint) use ($guesser) {
-            return $guesser->guessTypeForConstraint($constraint);
+        return $this->guess($class, $property, function (Constraint $constraint) {
+            return $this->guessTypeForConstraint($constraint);
         });
     }
 
@@ -44,10 +43,8 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
      */
     public function guessRequired($class, $property)
     {
-        $guesser = $this;
-
-        return $this->guess($class, $property, function (Constraint $constraint) use ($guesser) {
-            return $guesser->guessRequiredForConstraint($constraint);
+        return $this->guess($class, $property, function (Constraint $constraint) {
+            return $this->guessRequiredForConstraint($constraint);
         // If we don't find any constraint telling otherwise, we can assume
         // that a field is not required (with LOW_CONFIDENCE)
         }, false);
@@ -58,10 +55,8 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
      */
     public function guessMaxLength($class, $property)
     {
-        $guesser = $this;
-
-        return $this->guess($class, $property, function (Constraint $constraint) use ($guesser) {
-            return $guesser->guessMaxLengthForConstraint($constraint);
+        return $this->guess($class, $property, function (Constraint $constraint) {
+            return $this->guessMaxLengthForConstraint($constraint);
         });
     }
 
@@ -70,15 +65,13 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
      */
     public function guessPattern($class, $property)
     {
-        $guesser = $this;
-
-        return $this->guess($class, $property, function (Constraint $constraint) use ($guesser) {
-            return $guesser->guessPatternForConstraint($constraint);
+        return $this->guess($class, $property, function (Constraint $constraint) {
+            return $this->guessPatternForConstraint($constraint);
         });
     }
 
     /**
-     * Guesses a field class name for a given constraint
+     * Guesses a field class name for a given constraint.
      *
      * @param Constraint $constraint The constraint to guess for
      *
@@ -157,12 +150,14 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
 
             case 'Symfony\Component\Validator\Constraints\True':
             case 'Symfony\Component\Validator\Constraints\False':
+            case 'Symfony\Component\Validator\Constraints\IsTrue':
+            case 'Symfony\Component\Validator\Constraints\IsFalse':
                 return new TypeGuess('checkbox', array(), Guess::MEDIUM_CONFIDENCE);
         }
     }
 
     /**
-     * Guesses whether a field is required based on the given constraint
+     * Guesses whether a field is required based on the given constraint.
      *
      * @param Constraint $constraint The constraint to guess for
      *
@@ -174,12 +169,13 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
             case 'Symfony\Component\Validator\Constraints\NotNull':
             case 'Symfony\Component\Validator\Constraints\NotBlank':
             case 'Symfony\Component\Validator\Constraints\True':
+            case 'Symfony\Component\Validator\Constraints\IsTrue':
                 return new ValueGuess(true, Guess::HIGH_CONFIDENCE);
         }
     }
 
     /**
-     * Guesses a field's maximum length based on the given constraint
+     * Guesses a field's maximum length based on the given constraint.
      *
      * @param Constraint $constraint The constraint to guess for
      *
@@ -196,7 +192,7 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
 
             case 'Symfony\Component\Validator\Constraints\Type':
                 if (in_array($constraint->type, array('double', 'float', 'numeric', 'real'))) {
-                        return new ValueGuess(null, Guess::MEDIUM_CONFIDENCE);
+                    return new ValueGuess(null, Guess::MEDIUM_CONFIDENCE);
                 }
                 break;
 
@@ -209,7 +205,7 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
     }
 
     /**
-     * Guesses a field's pattern based on the given constraint
+     * Guesses a field's pattern based on the given constraint.
      *
      * @param Constraint $constraint The constraint to guess for
      *
@@ -248,7 +244,7 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
 
     /**
      * Iterates over the constraints of a property, executes a constraints on
-     * them and returns the best guess
+     * them and returns the best guess.
      *
      * @param string   $class        The class to read the constraints from
      * @param string   $property     The property for which to find constraints
@@ -264,8 +260,8 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
         $guesses = array();
         $classMetadata = $this->metadataFactory->getMetadataFor($class);
 
-        if ($classMetadata->hasMemberMetadatas($property)) {
-            $memberMetadatas = $classMetadata->getMemberMetadatas($property);
+        if ($classMetadata instanceof ClassMetadataInterface && $classMetadata->hasPropertyMetadata($property)) {
+            $memberMetadatas = $classMetadata->getPropertyMetadata($property);
 
             foreach ($memberMetadatas as $memberMetadata) {
                 $constraints = $memberMetadata->getConstraints();
@@ -276,10 +272,10 @@ class ValidatorTypeGuesser implements FormTypeGuesserInterface
                     }
                 }
             }
+        }
 
-            if (null !== $defaultValue) {
-                $guesses[] = new ValueGuess($defaultValue, Guess::LOW_CONFIDENCE);
-            }
+        if (null !== $defaultValue) {
+            $guesses[] = new ValueGuess($defaultValue, Guess::LOW_CONFIDENCE);
         }
 
         return Guess::getBestGuess($guesses);

@@ -1,6 +1,30 @@
 CHANGELOG
 =========
 
+3.0.0
+-----
+
+ * Changed the visibility of the locale property in `Translator` from protected to private.
+
+2.8.0
+-----
+
+ * deprecated Translator::getMessages(), use TranslatorBagInterface::getCatalogue() instead.
+ * added options 'as_tree', 'inline' to YamlFileDumper
+
+2.7.0
+-----
+
+ * added DataCollectorTranslator for collecting the translated messages.
+
+2.6.0
+-----
+
+ * added possibility to cache catalogues
+ * added TranslatorBagInterface
+ * added LoggingTranslator
+ * added Translator::getMessages() for retrieving the message catalogue as an array
+
 2.5.0
 -----
 

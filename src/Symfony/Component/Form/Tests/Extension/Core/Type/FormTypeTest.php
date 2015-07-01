@@ -12,7 +12,6 @@
 namespace Symfony\Component\Form\Tests\Extension\Core\Type;
 
 use Symfony\Component\PropertyAccess\PropertyPath;
-use Symfony\Component\Form\Form;
 use Symfony\Component\Form\CallbackTransformer;
 use Symfony\Component\Form\Tests\Fixtures\Author;
 use Symfony\Component\Form\Tests\Fixtures\FixedDataTransformer;
@@ -100,7 +99,10 @@ class FormTypeTest extends BaseTypeTest
         $this->assertEquals('reverse[ a ]', $form->getData());
     }
 
-    public function testNonReadOnlyFormWithReadOnlyParentIsReadOnly()
+    /**
+     * @group legacy
+     */
+    public function testLegacyNonReadOnlyFormWithReadOnlyParentIsReadOnly()
     {
         $view = $this->factory->createNamedBuilder('parent', 'form', null, array('read_only' => true))
             ->add('child', 'form')
@@ -110,7 +112,20 @@ class FormTypeTest extends BaseTypeTest
         $this->assertTrue($view['child']->vars['read_only']);
     }
 
-    public function testReadOnlyFormWithNonReadOnlyParentIsReadOnly()
+    public function testNonReadOnlyFormWithReadOnlyParentIsReadOnly()
+    {
+        $view = $this->factory->createNamedBuilder('parent', 'form', null, array('attr' => array('readonly' => true)))
+            ->add('child', 'form')
+            ->getForm()
+            ->createView();
+
+        $this->assertTrue($view['child']->vars['attr']['readonly']);
+    }
+
+    /**
+     * @group legacy
+     */
+    public function testLegacyReadOnlyFormWithNonReadOnlyParentIsReadOnly()
     {
         $view = $this->factory->createNamedBuilder('parent', 'form')
             ->add('child', 'form', array('read_only' => true))
@@ -120,7 +135,20 @@ class FormTypeTest extends BaseTypeTest
         $this->assertTrue($view['child']->vars['read_only']);
     }
 
-    public function testNonReadOnlyFormWithNonReadOnlyParentIsNotReadOnly()
+    public function testReadOnlyFormWithNonReadOnlyParentIsReadOnly()
+    {
+        $view = $this->factory->createNamedBuilder('parent', 'form')
+            ->add('child', 'form', array('attr' => array('readonly' => true)))
+            ->getForm()
+            ->createView();
+
+        $this->assertTrue($view['child']->vars['attr']['readonly']);
+    }
+
+    /**
+     * @group legacy
+     */
+    public function testLegacyNonReadOnlyFormWithNonReadOnlyParentIsNotReadOnly()
     {
         $view = $this->factory->createNamedBuilder('parent', 'form')
                 ->add('child', 'form')
@@ -128,6 +156,16 @@ class FormTypeTest extends BaseTypeTest
                 ->createView();
 
         $this->assertFalse($view['child']->vars['read_only']);
+    }
+
+    public function testNonReadOnlyFormWithNonReadOnlyParentIsNotReadOnly()
+    {
+        $view = $this->factory->createNamedBuilder('parent', 'form')
+            ->add('child', 'form')
+            ->getForm()
+            ->createView();
+
+        $this->assertArrayNotHasKey('readonly', $view['child']->vars['attr']);
     }
 
     public function testPassMaxLengthToView()
@@ -327,6 +365,7 @@ class FormTypeTest extends BaseTypeTest
 
     /**
      * @dataProvider provideZeros
+     *
      * @see https://github.com/symfony/symfony/issues/1986
      */
     public function testSetDataThroughParamsWithZero($data, $dataAsString)
@@ -373,7 +412,7 @@ class FormTypeTest extends BaseTypeTest
             // reference has a getter, but not setter
             'reference' => array(
                 'firstName' => 'Foo',
-            )
+            ),
         ));
 
         $this->assertEquals('Foo', $author->getReference()->firstName);
@@ -398,7 +437,7 @@ class FormTypeTest extends BaseTypeTest
         // referenceCopy has a getter that returns a copy
             'referenceCopy' => array(
                 'firstName' => 'Foo',
-        )
+        ),
         ));
 
         $this->assertEquals('Foo', $author->getReferenceCopy()->firstName);
@@ -411,7 +450,7 @@ class FormTypeTest extends BaseTypeTest
         $builder = $this->factory->createBuilder('form', $author);
         $builder->add('referenceCopy', 'form', array(
             'data_class' => 'Symfony\Component\Form\Tests\Fixtures\Author',
-            'by_reference' => false
+            'by_reference' => false,
         ));
         $builder->get('referenceCopy')->add('firstName', 'text');
         $form = $builder->getForm();
@@ -420,7 +459,7 @@ class FormTypeTest extends BaseTypeTest
             // referenceCopy has a getter that returns a copy
             'referenceCopy' => array(
                 'firstName' => 'Foo',
-            )
+            ),
         ));
 
         // firstName can only be updated if setReferenceCopy() was called
@@ -630,13 +669,16 @@ class FormTypeTest extends BaseTypeTest
     public function testPassZeroLabelToView()
     {
         $view = $this->factory->create('form', null, array(
-                'label' => '0'
+                'label' => '0',
             ))
             ->createView();
 
         $this->assertSame('0', $view->vars['label']);
     }
 
+    /**
+     * @group legacy
+     */
     public function testCanGetErrorsWhenButtonInForm()
     {
         $builder = $this->factory->createBuilder('form', null, array(

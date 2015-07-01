@@ -5,7 +5,11 @@
             "scope": "container",
             "public": true,
             "synthetic": false,
+            "lazy": true,
+            "abstract": true,
             "file": null,
+            "factory_class": "Full\\Qualified\\FactoryClass",
+            "factory_method": "get",
             "tags": [
 
             ]

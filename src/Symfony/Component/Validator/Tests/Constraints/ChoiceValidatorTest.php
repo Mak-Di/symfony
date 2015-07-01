@@ -144,9 +144,27 @@ class ChoiceValidatorTest extends AbstractConstraintValidatorTest
 
         $this->validator->validate('baz', $constraint);
 
-        $this->assertViolation('myMessage', array(
-            '{{ value }}' => '"baz"',
+        $this->buildViolation('myMessage')
+            ->setParameter('{{ value }}', '"baz"')
+            ->setCode(Choice::NO_SUCH_CHOICE_ERROR)
+            ->assertRaised();
+    }
+
+    public function testInvalidChoiceEmptyChoices()
+    {
+        $constraint = new Choice(array(
+            // May happen when the choices are provided dynamically, e.g. from
+            // the DB or the model
+            'choices' => array(),
+            'message' => 'myMessage',
         ));
+
+        $this->validator->validate('baz', $constraint);
+
+        $this->buildViolation('myMessage')
+            ->setParameter('{{ value }}', '"baz"')
+            ->setCode(Choice::NO_SUCH_CHOICE_ERROR)
+            ->assertRaised();
     }
 
     public function testInvalidChoiceMultiple()
@@ -159,9 +177,11 @@ class ChoiceValidatorTest extends AbstractConstraintValidatorTest
 
         $this->validator->validate(array('foo', 'baz'), $constraint);
 
-        $this->assertViolation('myMessage', array(
-            '{{ value }}' => '"baz"',
-        ));
+        $this->buildViolation('myMessage')
+            ->setParameter('{{ value }}', '"baz"')
+            ->setInvalidValue('baz')
+            ->setCode(Choice::NO_SUCH_CHOICE_ERROR)
+            ->assertRaised();
     }
 
     public function testTooFewChoices()
@@ -179,9 +199,12 @@ class ChoiceValidatorTest extends AbstractConstraintValidatorTest
 
         $this->validator->validate($value, $constraint);
 
-        $this->assertViolation('myMessage', array(
-            '{{ limit }}' => 2,
-        ), 'property.path', $value, 2);
+        $this->buildViolation('myMessage')
+            ->setParameter('{{ limit }}', 2)
+            ->setInvalidValue($value)
+            ->setPlural(2)
+            ->setCode(Choice::TOO_FEW_ERROR)
+            ->assertRaised();
     }
 
     public function testTooManyChoices()
@@ -199,9 +222,12 @@ class ChoiceValidatorTest extends AbstractConstraintValidatorTest
 
         $this->validator->validate($value, $constraint);
 
-        $this->assertViolation('myMessage', array(
-            '{{ limit }}' => 2,
-        ), 'property.path', $value, 2);
+        $this->buildViolation('myMessage')
+            ->setParameter('{{ limit }}', 2)
+            ->setInvalidValue($value)
+            ->setPlural(2)
+            ->setCode(Choice::TOO_MANY_ERROR)
+            ->assertRaised();
     }
 
     public function testNonStrict()
@@ -234,14 +260,15 @@ class ChoiceValidatorTest extends AbstractConstraintValidatorTest
         $constraint = new Choice(array(
             'choices' => array(1, 2),
             'strict' => true,
-            'message' => 'myMessage'
+            'message' => 'myMessage',
         ));
 
         $this->validator->validate('2', $constraint);
 
-        $this->assertViolation('myMessage', array(
-            '{{ value }}' => '"2"',
-        ));
+        $this->buildViolation('myMessage')
+            ->setParameter('{{ value }}', '"2"')
+            ->setCode(Choice::NO_SUCH_CHOICE_ERROR)
+            ->assertRaised();
     }
 
     public function testNonStrictWithMultipleChoices()
@@ -249,7 +276,7 @@ class ChoiceValidatorTest extends AbstractConstraintValidatorTest
         $constraint = new Choice(array(
             'choices' => array(1, 2, 3),
             'multiple' => true,
-            'strict' => false
+            'strict' => false,
         ));
 
         $this->validator->validate(array('2', 3), $constraint);
@@ -268,8 +295,10 @@ class ChoiceValidatorTest extends AbstractConstraintValidatorTest
 
         $this->validator->validate(array(2, '3'), $constraint);
 
-        $this->assertViolation('myMessage', array(
-            '{{ value }}' => '"3"',
-        ));
+        $this->buildViolation('myMessage')
+            ->setParameter('{{ value }}', '"3"')
+            ->setInvalidValue('3')
+            ->setCode(Choice::NO_SUCH_CHOICE_ERROR)
+            ->assertRaised();
     }
 }

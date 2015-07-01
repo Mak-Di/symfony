@@ -87,13 +87,13 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
         register_shutdown_function(array($this->store, 'cleanup'));
 
         $this->options = array_merge(array(
-            'debug'                  => false,
-            'default_ttl'            => 0,
-            'private_headers'        => array('Authorization', 'Cookie'),
-            'allow_reload'           => false,
-            'allow_revalidate'       => false,
+            'debug' => false,
+            'default_ttl' => 0,
+            'private_headers' => array('Authorization', 'Cookie'),
+            'allow_reload' => false,
+            'allow_revalidate' => false,
             'stale_while_revalidate' => 2,
-            'stale_if_error'         => 60,
+            'stale_if_error' => 60,
         ), $options);
     }
 
@@ -143,7 +143,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
     }
 
     /**
-     * Gets the Kernel instance
+     * Gets the Kernel instance.
      *
      * @return HttpKernelInterface An HttpKernelInterface instance
      */
@@ -152,34 +152,16 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
         return $this->kernel;
     }
 
-
     /**
-     * Gets the Surrogate instance
+     * Gets the Surrogate instance.
      *
      * @throws \LogicException
+     *
      * @return SurrogateInterface A Surrogate instance
      */
     public function getSurrogate()
     {
         return $this->getEsi();
-    }
-
-
-    /**
-     * Gets the Esi instance
-     *
-     * @throws \LogicException
-     * @return Esi An Esi instance
-     *
-     * @deprecated Deprecated since version 2.6, to be removed in 3.0. Use getSurrogate() instead
-     */
-    public function getEsi()
-    {
-        if (!$this->surrogate instanceof Esi) {
-            throw new \LogicException('This instance of HttpCache was not set up to use ESI as surrogate handler. You must overwrite and use createSurrogate');
-        }
-
-        return $this->surrogate;
     }
 
     /**
@@ -387,7 +369,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
         // We keep the etags from the client to handle the case when the client
         // has a different private valid entry which is not cached here.
         $cachedEtags = $entry->getEtag() ? array($entry->getEtag()) : array();
-        $requestEtags = $request->getEtags();
+        $requestEtags = $request->getETags();
         if ($etags = array_unique(array_merge($cachedEtags, $requestEtags))) {
             $subRequest->headers->set('if_none_match', implode(', ', $etags));
         }
@@ -481,6 +463,12 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
         // is always called from the same process as the backend.
         $request->server->set('REMOTE_ADDR', '127.0.0.1');
 
+        // make sure HttpCache is a trusted proxy
+        if (!in_array('127.0.0.1', $trustedProxies = Request::getTrustedProxies())) {
+            $trustedProxies[] = '127.0.0.1';
+            Request::setTrustedProxies($trustedProxies);
+        }
+
         // always a "master" request (as the real master request can be in cache)
         $response = $this->kernel->handle($request, HttpKernelInterface::MASTER_REQUEST, $catch);
         // FIXME: we probably need to also catch exceptions if raw === true
@@ -515,7 +503,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
      * @param Request  $request A Request instance
      * @param Response $entry   A Response instance
      *
-     * @return bool    true if the cache entry if fresh enough, false otherwise
+     * @return bool true if the cache entry if fresh enough, false otherwise
      */
     protected function isFreshEnough(Request $request, Response $entry)
     {
@@ -536,7 +524,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
      * @param Request  $request A Request instance
      * @param Response $entry   A Response instance
      *
-     * @return bool    true if the cache entry can be returned even if it is staled, false otherwise
+     * @return bool true if the cache entry can be returned even if it is staled, false otherwise
      */
     protected function lock(Request $request, Response $entry)
     {
@@ -621,8 +609,6 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
      *
      * @param Request  $request  A Request instance
      * @param Response $response A Response instance
-     *
-     * @return Response A Response instance
      */
     private function restoreResponseBody(Request $request, Response $response)
     {
@@ -670,7 +656,7 @@ class HttpCache implements HttpKernelInterface, TerminableInterface
      *
      * @param Request $request A Request instance
      *
-     * @return bool    true if the Request is private, false otherwise
+     * @return bool true if the Request is private, false otherwise
      */
     private function isPrivateRequest(Request $request)
     {

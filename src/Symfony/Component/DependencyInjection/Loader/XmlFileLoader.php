@@ -32,14 +32,11 @@ class XmlFileLoader extends FileLoader
     const NS = 'http://symfony.com/schema/dic/services';
 
     /**
-     * Loads an XML file.
-     *
-     * @param mixed  $file The resource
-     * @param string $type The resource type
+     * {@inheritdoc}
      */
-    public function load($file, $type = null)
+    public function load($resource, $type = null)
     {
-        $path = $this->locator->locate($file);
+        $path = $this->locator->locate($resource);
 
         $xml = $this->parseFileToDOM($path);
 
@@ -62,12 +59,7 @@ class XmlFileLoader extends FileLoader
     }
 
     /**
-     * Returns true if this class supports the given resource.
-     *
-     * @param mixed  $resource A resource
-     * @param string $type     The resource type
-     *
-     * @return bool    true if this class supports the given resource, false otherwise
+     * {@inheritdoc}
      */
     public function supports($resource, $type = null)
     {
@@ -75,7 +67,7 @@ class XmlFileLoader extends FileLoader
     }
 
     /**
-     * Parses parameters
+     * Parses parameters.
      *
      * @param \DOMDocument $xml
      * @param string       $file
@@ -88,7 +80,7 @@ class XmlFileLoader extends FileLoader
     }
 
     /**
-     * Parses imports
+     * Parses imports.
      *
      * @param \DOMDocument $xml
      * @param string       $file
@@ -109,7 +101,7 @@ class XmlFileLoader extends FileLoader
     }
 
     /**
-     * Parses multiple definitions
+     * Parses multiple definitions.
      *
      * @param \DOMDocument $xml
      * @param string       $file
@@ -124,25 +116,28 @@ class XmlFileLoader extends FileLoader
         }
 
         foreach ($services as $service) {
-            $this->parseDefinition((string) $service->getAttribute('id'), $service, $file);
+            if (null !== $definition = $this->parseDefinition($service, $file)) {
+                $this->container->setDefinition((string) $service->getAttribute('id'), $definition);
+            }
         }
     }
 
     /**
-     * Parses an individual Definition
+     * Parses an individual Definition.
      *
-     * @param string      $id
      * @param \DOMElement $service
      * @param string      $file
+     *
+     * @return Definition|null
      */
-    private function parseDefinition($id, \DOMElement $service, $file)
+    private function parseDefinition(\DOMElement $service, $file)
     {
         if ($alias = $service->getAttribute('alias')) {
             $public = true;
             if ($publicAttr = $service->getAttribute('public')) {
                 $public = XmlUtils::phpize($publicAttr);
             }
-            $this->container->setAlias($id, new Alias($alias, $public));
+            $this->container->setAlias((string) $service->getAttribute('id'), new Alias($alias, $public));
 
             return;
         }
@@ -153,8 +148,11 @@ class XmlFileLoader extends FileLoader
             $definition = new Definition();
         }
 
-        foreach (array('class', 'scope', 'public', 'factory-class', 'factory-method', 'factory-service', 'synthetic', 'synchronized', 'lazy', 'abstract') as $key) {
+        foreach (array('class', 'scope', 'public', 'synthetic', 'lazy', 'abstract') as $key) {
             if ($value = $service->getAttribute($key)) {
+                if (in_array($key, array('factory-class', 'factory-method', 'factory-service'))) {
+                    @trigger_error(sprintf('The "%s" attribute in file "%s" is deprecated since version 2.6 and will be removed in 3.0. Use the "factory" element instead.', $key, $file), E_USER_DEPRECATED);
+                }
                 $method = 'set'.str_replace('-', '', $key);
                 $definition->$method(XmlUtils::phpize($value));
             }
@@ -167,12 +165,35 @@ class XmlFileLoader extends FileLoader
         $definition->setArguments($this->getArgumentsAsPhp($service, 'argument'));
         $definition->setProperties($this->getArgumentsAsPhp($service, 'property'));
 
+        if ($factories = $this->getChildren($service, 'factory')) {
+            $factory = $factories[0];
+            if ($function = $factory->getAttribute('function')) {
+                $definition->setFactory($function);
+            } else {
+                $factoryService = $this->getChildren($factory, 'service');
+
+                if (isset($factoryService[0])) {
+                    $class = $this->parseDefinition($factoryService[0], $file);
+                } elseif ($childService = $factory->getAttribute('service')) {
+                    $class = new Reference($childService, ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE, false);
+                } else {
+                    $class = $factory->getAttribute('class');
+                }
+
+                $definition->setFactory(array($class, $factory->getAttribute('method')));
+            }
+        }
+
         if ($configurators = $this->getChildren($service, 'configurator')) {
             $configurator = $configurators[0];
             if ($function = $configurator->getAttribute('function')) {
                 $definition->setConfigurator($function);
             } else {
-                if ($childService = $configurator->getAttribute('service')) {
+                $configuratorService = $this->getChildren($configurator, 'service');
+
+                if (isset($configuratorService[0])) {
+                    $class = $this->parseDefinition($configuratorService[0], $file);
+                } elseif ($childService = $configurator->getAttribute('service')) {
                     $class = new Reference($childService, ContainerInterface::EXCEPTION_ON_INVALID_REFERENCE, false);
                 } else {
                     $class = $configurator->getAttribute('class');
@@ -208,11 +229,11 @@ class XmlFileLoader extends FileLoader
             $definition->setDecoratedService($value, $renameId);
         }
 
-        $this->container->setDefinition($id, $definition);
+        return $definition;
     }
 
     /**
-     * Parses a XML file to a \DOMDocument
+     * Parses a XML file to a \DOMDocument.
      *
      * @param string $file Path to a file
      *
@@ -234,7 +255,7 @@ class XmlFileLoader extends FileLoader
     }
 
     /**
-     * Processes anonymous services
+     * Processes anonymous services.
      *
      * @param \DOMDocument $xml
      * @param string       $file
@@ -284,7 +305,9 @@ class XmlFileLoader extends FileLoader
             // we could not use the constant false here, because of XML parsing
             $domElement->setAttribute('public', 'false');
 
-            $this->parseDefinition($id, $domElement, $file);
+            if (null !== $definition = $this->parseDefinition($domElement, $file)) {
+                $this->container->setDefinition($id, $definition);
+            }
 
             if (true === $wild) {
                 $tmpDomElement = new \DOMElement('_services', null, self::NS);
@@ -369,7 +392,7 @@ class XmlFileLoader extends FileLoader
     }
 
     /**
-     * Get child elements by name
+     * Get child elements by name.
      *
      * @param \DOMNode $node
      * @param mixed    $name

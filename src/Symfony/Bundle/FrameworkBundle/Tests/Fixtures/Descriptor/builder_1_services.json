@@ -5,7 +5,11 @@
             "scope": "container",
             "public": true,
             "synthetic": false,
+            "lazy": true,
+            "abstract": true,
             "file": null,
+            "factory_class": "Full\\Qualified\\FactoryClass",
+            "factory_method": "get",
             "tags": [
 
             ]
@@ -15,7 +19,11 @@
             "scope": "container",
             "public": false,
             "synthetic": true,
+            "lazy": false,
+            "abstract": false,
             "file": "\/path\/to\/file",
+            "factory_service": "factory.service",
+            "factory_method": "get",
             "tags": [
                 {
                     "name": "tag1",

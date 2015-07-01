@@ -78,20 +78,23 @@ class XliffFileLoader implements LoaderInterface
                 $catalogue->setMetadata((string) $source, array('notes' => $notes), $domain);
             }
         }
-        $catalogue->addResource(new FileResource($resource));
+
+        if (class_exists('Symfony\Component\Config\Resource\FileResource')) {
+            $catalogue->addResource(new FileResource($resource));
+        }
 
         return $catalogue;
     }
 
     /**
-     * Convert a UTF8 string to the specified encoding
+     * Convert a UTF8 string to the specified encoding.
      *
      * @param string $content  String to decode
      * @param string $encoding Target encoding
      *
      * @return string
      */
-    private function utf8ToCharset($content, $encoding=null)
+    private function utf8ToCharset($content, $encoding = null)
     {
         if ('UTF-8' !== $encoding && !empty($encoding)) {
             if (function_exists('mb_convert_encoding')) {
@@ -109,7 +112,7 @@ class XliffFileLoader implements LoaderInterface
     }
 
     /**
-     * Validates and parses the given file into a SimpleXMLElement
+     * Validates and parses the given file into a SimpleXMLElement.
      *
      * @param string $file
      *
@@ -145,20 +148,21 @@ class XliffFileLoader implements LoaderInterface
         $source = str_replace('http://www.w3.org/2001/xml.xsd', $location, $source);
 
         if (!@$dom->schemaValidateSource($source)) {
-            throw new InvalidResourceException(implode("\n", $this->getXmlErrors($internalErrors)));
+            throw new InvalidResourceException(sprintf('Invalid resource provided: "%s"; Errors: %s', $file, implode("\n", $this->getXmlErrors($internalErrors))));
         }
 
         $dom->normalizeDocument();
 
+        libxml_clear_errors();
         libxml_use_internal_errors($internalErrors);
 
         return array(simplexml_import_dom($dom), strtoupper($dom->encoding));
     }
 
     /**
-     * Returns the XML errors of the internal XML parser
+     * Returns the XML errors of the internal XML parser.
      *
-     * @param bool    $internalErrors
+     * @param bool $internalErrors
      *
      * @return array An array of errors
      */
@@ -170,7 +174,7 @@ class XliffFileLoader implements LoaderInterface
                 LIBXML_ERR_WARNING == $error->level ? 'WARNING' : 'ERROR',
                 $error->code,
                 trim($error->message),
-                $error->file ? $error->file : 'n/a',
+                $error->file ?: 'n/a',
                 $error->line,
                 $error->column
             );

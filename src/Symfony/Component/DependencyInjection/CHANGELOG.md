@@ -1,6 +1,21 @@
 CHANGELOG
 =========
 
+2.8.0
+-----
+
+ * allowed specifying a directory to recursively load all configuration files it contains
+
+2.7.0
+-----
+
+ * deprecated synchronized services
+
+2.6.0
+-----
+
+ * added new factory syntax and deprecated the old one
+
 2.5.0
 -----
 

@@ -25,13 +25,13 @@ class ExceptionHandlerTest extends \PHPUnit_Framework_TestCase
         $response = $handler->createResponse(new \RuntimeException('Foo'));
 
         $this->assertContains('<h1>Whoops, looks like something went wrong.</h1>', $response->getContent());
-        $this->assertNotContains('<div class="block_exception clear_fix">', $response->getContent());
+        $this->assertNotContains('<h2 class="block_exception clear_fix">', $response->getContent());
 
         $handler = new ExceptionHandler(true);
         $response = $handler->createResponse(new \RuntimeException('Foo'));
 
         $this->assertContains('<h1>Whoops, looks like something went wrong.</h1>', $response->getContent());
-        $this->assertContains('<div class="block_exception clear_fix">', $response->getContent());
+        $this->assertContains('<h2 class="block_exception clear_fix">', $response->getContent());
     }
 
     public function testStatusCode()
@@ -81,9 +81,8 @@ class ExceptionHandlerTest extends \PHPUnit_Framework_TestCase
 
         $handler->handle($exception);
 
-        $that = $this;
-        $handler->setHandler(function ($e) use ($exception, $that) {
-            $that->assertSame($exception, $e);
+        $handler->setHandler(function ($e) use ($exception) {
+            $this->assertSame($exception, $e);
         });
 
         $handler->handle($exception);
@@ -106,9 +105,8 @@ class ExceptionHandlerTest extends \PHPUnit_Framework_TestCase
                 ->method('sendPhpResponse');
         }
 
-        $that = $this;
-        $handler->setHandler(function ($e) use ($that) {
-            $that->fail('OutOfMemoryException should bypass the handler');
+        $handler->setHandler(function ($e) {
+            $this->fail('OutOfMemoryException should bypass the handler');
         });
 
         $handler->handle($exception);

@@ -19,13 +19,9 @@ namespace Symfony\Component\Yaml;
  */
 class Unescaper
 {
-    // Parser and Inline assume UTF-8 encoding, so escaped Unicode characters
-    // must be converted to that encoding.
-    // @deprecated since 2.5, to be removed in 3.0
-    const ENCODING = 'UTF-8';
-
-    // Regex fragment that matches an escaped character in a double quoted
-    // string.
+    /**
+     * Regex fragment that matches an escaped character in a double quoted string.
+     */
     const REGEX_ESCAPED_CHARACTER = "\\\\([0abt\tnvfre \\\"\\/\\\\N_LP]|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})";
 
     /**
@@ -49,9 +45,8 @@ class Unescaper
      */
     public function unescapeDoubleQuotedString($value)
     {
-        $self = $this;
-        $callback = function ($match) use ($self) {
-            return $self->unescapeCharacter($match[0]);
+        $callback = function ($match) {
+            return $this->unescapeCharacter($match[0]);
         };
 
         // evaluate the string
@@ -59,7 +54,7 @@ class Unescaper
     }
 
     /**
-     * Unescapes a character that was found in a double-quoted string
+     * Unescapes a character that was found in a double-quoted string.
      *
      * @param string $value An escaped character
      *
@@ -130,12 +125,12 @@ class Unescaper
             return chr($c);
         }
         if (0x800 > $c) {
-            return chr(0xC0 | $c>>6).chr(0x80 | $c & 0x3F);
+            return chr(0xC0 | $c >> 6).chr(0x80 | $c & 0x3F);
         }
         if (0x10000 > $c) {
-            return chr(0xE0 | $c>>12).chr(0x80 | $c>>6 & 0x3F).chr(0x80 | $c & 0x3F);
+            return chr(0xE0 | $c >> 12).chr(0x80 | $c >> 6 & 0x3F).chr(0x80 | $c & 0x3F);
         }
 
-        return chr(0xF0 | $c>>18).chr(0x80 | $c>>12 & 0x3F).chr(0x80 | $c>>6 & 0x3F).chr(0x80 | $c & 0x3F);
+        return chr(0xF0 | $c >> 18).chr(0x80 | $c >> 12 & 0x3F).chr(0x80 | $c >> 6 & 0x3F).chr(0x80 | $c & 0x3F);
     }
 }
